@@ -2,15 +2,14 @@
 
 #include <stdint.h>
 
-#define CMD_PROC_INPUT_STR_LEN  (256)
-#define CMD_PROC_OUTPUT_STR_LEN (256)
+#include "cmd_proc_buffers.h"
 
-#ifndef CMD_PROC_START_CHAR
-#define CMD_PROC_START_CHAR '@'
+#ifndef CMD_PROC_INPUT_CHAR
+#define CMD_PROC_INPUT_CHAR '@'
 #endif
 
-#ifndef CMD_PROC_RESPONSE_CHAR
-#define CMD_PROC_RESPONSE_CHAR '#'
+#ifndef CMD_PROC_OUTPUT_CHAR
+#define CMD_PROC_OUTPUT_CHAR '#'
 #endif
 
 #ifndef CMD_PROC_STOP_CHAR

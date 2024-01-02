@@ -21,7 +21,7 @@ static AssembleCmdStatus CmdProc_AssembleCmd(uint8_t dataIn, uint8_t* inputStrin
 
     if (cmdProcState == CMD_PROC_IDLE)
     {
-        if (dataIn == CMD_PROC_START_CHAR)
+        if (dataIn == CMD_PROC_INPUT_CHAR)
         {
             cmdProcState = CMD_PROC_ASSEMBLE;
         }
@@ -46,7 +46,7 @@ static AssembleCmdStatus CmdProc_AssembleCmd(uint8_t dataIn, uint8_t* inputStrin
             }
             else
             {
-                commandBuffer[++commandBufIndex] = dataIn;
+                commandBuffer[commandBufIndex++] = dataIn;
             }
             
             return COMMAND_NOT_READY;
@@ -60,19 +60,38 @@ static AssembleCmdStatus CmdProc_AssembleCmd(uint8_t dataIn, uint8_t* inputStrin
     }
 }
 
-static ParseCmdStatus CmdProc_ParseInputString(const uint8_t* inputString, const CmdProc_Command* commandOut, int* argCountOut, float* argValuesOut)
+static ParseCmdStatus CmdProc_ParseInputString(
+    const uint8_t* inputString, 
+    const CmdProc_Command** commandOut, 
+    int* argCountOut, 
+    float* argValuesOut)
 {
     for (int i = 0; i < CMD_PROC_MAX_NUM_CMDS; i++)
     {
         if (strncmp((const char*)inputString, commandList[i].cmdId, CMD_PROC_ID_LEN) == 0)
         {
-            commandOut = &commandList[i];
+            *commandOut = &commandList[i];
 
             char scanString[30] = {0};
-            sprintf(scanString, "\%%dC %f, %f, %f, %f, %f");
+            // Floats are scanned because they can accurately represent and be casted to the supported argument types.
+            sprintf(scanString, "%c%uc %%f, %%f, %%f, %%f, %%f", '%', CMD_PROC_ID_LEN);
 
             char cmdString[5];
-            sscanf((const char*)inputString, scanString, cmdString, argValuesOut[0], argValuesOut[1], argValuesOut[2], argValuesOut[3], argValuesOut[4]);
+            *argCountOut = sscanf(
+                (const char*)inputString,
+                scanString,
+                cmdString,
+                &argValuesOut[0], 
+                &argValuesOut[1], 
+                &argValuesOut[2], 
+                &argValuesOut[3], 
+                &argValuesOut[4]);
+            
+            if (*argCountOut > 0)
+            {
+                *argCountOut -= 1;
+            }
+
             return COMMAND_VALID;
         }
     }
@@ -80,9 +99,40 @@ static ParseCmdStatus CmdProc_ParseInputString(const uint8_t* inputString, const
     return COMMAND_INVALID;
 }
 
-void BuildOutputString(ParseCmdStatus parseStatus, const uint8_t* inputString, uint8_t* outputString)
+void CmdProc_BuildOutputString(
+    CmdProc_HandlerStatus handlerStatus, 
+    const uint8_t* inputString, 
+    const uint8_t* handlerRespString, 
+    uint8_t* outputString)
 {
+    outputString[0] = CMD_PROC_OUTPUT_CHAR;
+    
+    switch (handlerStatus)
+    {
+        case CMD_PROC_SUCCESS_MSG:
+            snprintf(&outputString[1], (CMD_PROC_OUTPUT_STR_LEN - 1), "%s %s ACK\r\n", inputString, handlerRespString);
+            break;
 
+        case CMD_PROC_SUCCESS:
+            snprintf(&outputString[1], (CMD_PROC_OUTPUT_STR_LEN - 1), "%s ACK\r\n", inputString);
+            break;
+
+        case CMD_PROC_INVALID_ARGS:
+            snprintf(&outputString[1], (CMD_PROC_OUTPUT_STR_LEN - 1), "%s INVALID ARGS ERR\r\n", inputString);
+            break;
+
+        case CMD_PROC_ARG_RANGE_ERR:
+            snprintf(&outputString[1], (CMD_PROC_OUTPUT_STR_LEN - 1), "%s ARG RANGE ERR\r\n", inputString);
+            break;
+
+        case CMD_PROC_ERR_MSG:
+            snprintf(&outputString[1], (CMD_PROC_OUTPUT_STR_LEN - 1), "%s %s ERR\r\n", handlerRespString, inputString);
+            break;
+
+        default:
+            assert(0);
+            snprintf(&outputString[1], (CMD_PROC_OUTPUT_STR_LEN - 1), "%s unexpected function error code ERR\r\n", CMD_PROC_OUTPUT_CHAR, inputString);
+    }
 }
 
 CmdProcStatus CmdProc_HandleData(uint8_t data, uint8_t* outputString)
@@ -94,11 +144,14 @@ CmdProcStatus CmdProc_HandleData(uint8_t data, uint8_t* outputString)
     {
         const CmdProc_Command* command;
         int argCount = 0;
-        float argValues[CMD_PROC_MAX_ARGS];
-        ParseCmdStatus parseStatus = CmdProc_ParseInputString(inputString, command, &argCount, argValues);
+        float argValues[CMD_PROC_MAX_ARGS] = { 0 };
+        ParseCmdStatus parseStatus = CmdProc_ParseInputString(inputString, &command, &argCount, argValues);
         if (parseStatus == COMMAND_VALID)
         {
-            command->cmdFunc(argCount, argValues, inputString, outputString);
+            uint8_t handlerRespString[CMD_PROC_HANDLER_RESP_STR_LEN] = { 0 };
+            CmdProc_HandlerStatus handlerStatus = command->cmdFunc(argCount, argValues, inputString, handlerRespString);
+            CmdProc_BuildOutputString(handlerStatus, inputString, handlerRespString, outputString);
+            
             return CMD_PROC_DONE;
         }
     }
