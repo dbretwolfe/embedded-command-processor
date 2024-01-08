@@ -14,7 +14,7 @@ typedef enum
     CMD_PROC_ERR_MSG = -3
 } CmdProc_HandlerStatus;
 
-typedef CmdProc_HandlerStatus (*CmdFunc_Handler)(uint16_t argCount, void* argValues, uint8_t* inputString, uint8_t* handlerRespString);
+typedef CmdProc_HandlerStatus (*CmdFunc_Handler)(uint16_t argCount, float* argValues, uint8_t* inputString, uint8_t* handlerRespString);
 
 typedef struct
 {

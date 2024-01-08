@@ -9,7 +9,7 @@ extern "C"
     #include "command_processor.h"
 }
 
-class CmdProcTestC : public testing::Test
+class CmdProcCTest : public testing::Test
 {
 protected:
     void SetUp() override

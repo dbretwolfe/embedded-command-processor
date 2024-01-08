@@ -126,12 +126,12 @@ void CmdProc_BuildOutputString(
             break;
 
         case CMD_PROC_ERR_MSG:
-            snprintf(&outputString[1], (CMD_PROC_OUTPUT_STR_LEN - 1), "%s %s ERR\r\n", handlerRespString, inputString);
+            snprintf(&outputString[1], (CMD_PROC_OUTPUT_STR_LEN - 1), "%s %s ERR\r\n", inputString, handlerRespString);
             break;
 
         default:
             assert(0);
-            snprintf(&outputString[1], (CMD_PROC_OUTPUT_STR_LEN - 1), "%s unexpected function error code ERR\r\n", CMD_PROC_OUTPUT_CHAR, inputString);
+            snprintf(&outputString[1], (CMD_PROC_OUTPUT_STR_LEN - 1), "%s unexpected function error code ERR\r\n", inputString);
     }
 }
 
