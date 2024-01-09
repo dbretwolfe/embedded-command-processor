@@ -8,14 +8,13 @@ namespace UartCmdProc
 {
     CommandProcessor::CommandProcessor(std::vector<Command>&& commandList, size_t bufferSize) : 
     _commandList(commandList),
-    _bufferSize(bufferSize)
+    _inputBufferSize(bufferSize)
     {
         _inputBuffer.resize(bufferSize);
         _inputString.resize(bufferSize);
-        _outputString.resize(bufferSize);
     }
 
-    CmdProcStatus CommandProcessor::HandleData(uint8_t data, const std::string& outputString)
+    CmdProcStatus CommandProcessor::HandleData(uint8_t data, std::string& outputString)
     {
         AssembleCmdStatus assembleStatus = AssembleCommand(data);
 
@@ -23,21 +22,23 @@ namespace UartCmdProc
         {
             try
             {
-                std::vector<float> args;
-                Command command = ParseInputString(args);
+                Command command = MatchCommandId();
+                std::vector<float> args = ParseArguments(command.cmdId);
                 std::string handlerRespString;
                 HandlerStatus handlerStatus = command.Execute(args, _inputString, handlerRespString);
-                BuildOutputString(handlerStatus, handlerRespString);
+                outputString = BuildOutputString(handlerStatus, handlerRespString);
+
+                return CmdProcStatus::DONE;
             }
             catch(const std::invalid_argument& e)
             {
                 return CmdProcStatus::WAITING;
             }
-            
-            return CmdProcStatus::DONE;
         }
-
-        return CmdProcStatus::WAITING;
+        else
+        {
+            return CmdProcStatus::WAITING;
+        }
     }
 
     CommandProcessor::AssembleCmdStatus CommandProcessor::AssembleCommand(uint8_t dataIn)
@@ -62,7 +63,7 @@ namespace UartCmdProc
             }
             else
             {
-                if (_commandBufIndex == (_bufferSize - 1))
+                if (_commandBufIndex == (_inputBufferSize - 1))
                 {
                     _commandBufIndex = 0;
                     _assembleState = AssembleState::CMD_PROC_IDLE;
@@ -83,7 +84,7 @@ namespace UartCmdProc
         }
     }
 
-    Command& CommandProcessor::ParseInputString(std::vector<float>& args)
+    Command& CommandProcessor::MatchCommandId(void)
     {
         for (int i = 0; i < _commandList.size(); i++)
         {
@@ -91,28 +92,6 @@ namespace UartCmdProc
 
             if (_commandList[i].cmdId.compare(0, cmdIdLen, _inputString) == 0);
             {
-                char scanString[30] = {0};
-                // Floats are scanned because they can accurately represent and be casted to the supported argument types.
-                sprintf(scanString, "%s %%f, %%f, %%f, %%f, %%f", _commandList[i].cmdId);
-
-                float tempArgs[_maxArgCount];
-
-                int numScanned = sscanf(
-                    (const char*)_inputString.data(),
-                    scanString,
-                    &tempArgs[0], 
-                    &tempArgs[1], 
-                    &tempArgs[2], 
-                    &tempArgs[3], 
-                    &tempArgs[4]); // TODO: make arg list variable?
-
-                std::vector<float> tempArgVec;
-                for (int i = 0; i < numScanned; i++)
-                {
-                    tempArgVec.push_back(tempArgs[i]);
-                }
-
-                args = std::move(tempArgVec);
                 return _commandList[i];
             }
         }
@@ -120,35 +99,70 @@ namespace UartCmdProc
         throw std::invalid_argument("Invalid command!");
     }
 
-    void CommandProcessor::BuildOutputString(HandlerStatus handlerStatus, std::string& handlerRespString)
+    std::vector<float> CommandProcessor::ParseArguments(std::string cmdId)
     {
-        _outputString[0] = _outputChar;
+        char scanString[30] = {0};
+        // Floats are scanned because they can accurately represent and be casted to the supported argument types.
+        sprintf(scanString, "%s %%f, %%f, %%f, %%f, %%f", cmdId);
+
+        float tempArgs[_maxArgCount];
+
+        int numScanned = sscanf(
+            (const char*)_inputString.data(),
+            scanString,
+            &tempArgs[0], 
+            &tempArgs[1], 
+            &tempArgs[2], 
+            &tempArgs[3], 
+            &tempArgs[4]); // TODO: make arg list variable?
+
+        if (numScanned <= 0)
+        {
+            throw std::invalid_argument("Invalid command!");
+        }
+
+        std::vector<float> tempArgVec;
+        
+        for (int i = 0; i < numScanned; i++)
+        {
+            tempArgVec.push_back(tempArgs[i]);
+        }
+
+        return tempArgVec;
+    }
+
+    std::string CommandProcessor::BuildOutputString(HandlerStatus handlerStatus, std::string& handlerRespString)
+    {
+        std::string outputString;
+        outputString += _outputChar;
     
         switch (handlerStatus)
         {
             case HandlerStatus::SUCCESS_MSG:
-                _outputString += std::format("%s %s ACK\r\n", _inputString, handlerRespString);
+                outputString += std::format("%s %s ACK\r\n", _inputString, handlerRespString);
                 break;
 
             case HandlerStatus::SUCCESS:
-                _outputString += std::format("%s ACK\r\n", _inputString);
+                outputString += std::format("%s ACK\r\n", _inputString);
                 break;
 
             case HandlerStatus::INVALID_ARGS:
-                _outputString += std::format("%s INVALID ARGS ERR\r\n", _inputString);
+                outputString += std::format("%s INVALID ARGS ERR\r\n", _inputString);
                 break;
 
             case HandlerStatus::ARG_RANGE_ERR:
-                _outputString += std::format("%s ARG RANGE ERR\r\n", _inputString);
+                outputString += std::format("%s ARG RANGE ERR\r\n", _inputString);
                 break;
 
             case HandlerStatus::ERR_MSG:
-                _outputString += std::format("%s %s ERR\r\n", _inputString, handlerRespString);
+                outputString += std::format("%s %s ERR\r\n", _inputString, handlerRespString);
                 break;
 
             default:
                 assert(0);
-                _outputString += std::format("%s unexpected function error code ERR\r\n", _inputString);
+                outputString += std::format("%s unexpected function error code ERR\r\n", _inputString);
         }
+
+        return outputString;
     }
 }

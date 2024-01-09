@@ -18,7 +18,7 @@ static void SendCommand(const uint8_t* inputString, int len, uint8_t* outputStri
 
 TEST_F(CmdProcCppTest, TestArgs)
 {
-
+    
     //SendCommand(inputString, strlen((const char*)inputString), outputString);
 
     //printf((const char*)outputString);

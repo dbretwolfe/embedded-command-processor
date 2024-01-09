@@ -12,9 +12,8 @@ namespace UartCmdProc
     class CommandProcessor
     {
     public:
-        CommandProcessor(std::vector<Command>&& commandList, size_t bufferSize);
-        CmdProcStatus HandleData(uint8_t data, const std::string& outputString);
-        CmdProcStatus HandleData(std::vector<uint8_t> data, const std::string& outputString);
+        CommandProcessor(std::vector<Command>&& commandList, size_t inputBufferSize);
+        CmdProcStatus HandleData(uint8_t data, std::string& outputString);
         void SetInputChar(char inputChar){ _inputChar = inputChar; };
         void SetOutputChar(char outputChar){ _outputChar = outputChar; };
         void SetStopChar(char stopChar){ _stopChar = stopChar; };
@@ -24,8 +23,9 @@ namespace UartCmdProc
         enum class AssembleState { CMD_PROC_IDLE, CMD_PROC_ASSEMBLE };
 
         AssembleCmdStatus AssembleCommand(uint8_t dataIn);
-        Command& ParseInputString(std::vector<float>& args);
-        void BuildOutputString(HandlerStatus handlerStatus, std::string& handlerRespString);
+        Command& MatchCommandId(void);
+        std::vector<float> ParseArguments(std::string cmdId);
+        std::string BuildOutputString(HandlerStatus handlerStatus, std::string& handlerRespString);
 
         AssembleState _assembleState = AssembleState::CMD_PROC_IDLE;
         int _commandBufIndex = 0;
@@ -35,10 +35,9 @@ namespace UartCmdProc
 
         constexpr static int _maxArgCount = 5;
 
-        const size_t _bufferSize;
+        const size_t _inputBufferSize;
         std::string _inputBuffer;
         std::string _inputString;
-        std::string _outputString;
 
         std::vector<Command> _commandList;
     };

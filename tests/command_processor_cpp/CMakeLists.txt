@@ -8,6 +8,7 @@ project(
 add_executable(CmdProcCppTest)
 target_sources(CmdProcCppTest PUBLIC 
   test.cpp
+  command_functions.cpp
 )
 target_include_directories(CmdProcCppTest PUBLIC ./ ../../command_processor_cpp/)
 target_link_libraries(CmdProcCppTest PUBLIC CmdProcCpp PRIVATE GTest::gtest_main)
