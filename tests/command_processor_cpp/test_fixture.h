@@ -16,6 +16,8 @@ protected:
         cmdProc = new UartCmdProc::CommandProcessor(GetTestCommandList(), inputBufferSize);
     }
 
+    void SendCommand(const std::string inputString, std::string& outputString);
+
     constexpr static int inputBufferSize = 256;
     UartCmdProc::CommandProcessor* cmdProc;
 };

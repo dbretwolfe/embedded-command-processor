@@ -1,20 +1,21 @@
-#include "command_functions.hpp"
 #include <format>
+
+#include "command_functions.hpp"
 
 using namespace UartCmdProc;
 
-HandlerStatus TestArgsFunc(std::vector<float> args, std::string inputString, std::string handlerRespString)
+HandlerStatus TestArgsFunc(std::vector<float> args, const std::string& inputString, std::string& handlerRespString)
 {
-    handlerRespString += std::format("%s argc = %u", inputString, args.size());
+    handlerRespString += std::format("argc = {}", args.size());
 
-    if (args.size() > 1)
+    if (args.size() > 0)
     {
-        handlerRespString += std::format("args = %f", args[0]);
+        handlerRespString += std::format(" args = {}", args[0]);
     }
 
-    for(int i = 0; i < args.size(); i++)
+    for(int i = 1; i < args.size(); i++)
     {
-        handlerRespString += std::format(", %f", args[i]);
+        handlerRespString += std::format(", {}", args[i]);
     }
     
     return HandlerStatus::SUCCESS_MSG;

@@ -16,9 +16,9 @@ namespace UartCmdProc
     };
 
     typedef HandlerStatus (*CmdProcHandler)(
-        std::vector<float> args, 
-        std::string inputString, 
-        std::string handlerRespString);
+        std::vector<float> args,
+        const std::string& inputString,
+        std::string& handlerRespString);
 
     class Command
     {

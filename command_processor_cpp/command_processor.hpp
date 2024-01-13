@@ -35,7 +35,7 @@ namespace UartCmdProc
 
         constexpr static int _maxArgCount = 5;
 
-        const size_t _inputBufferSize;
+        const size_t _maxInputBufferSize;
         std::string _inputBuffer;
         std::string _inputString;
 

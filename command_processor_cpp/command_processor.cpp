@@ -8,10 +8,8 @@ namespace UartCmdProc
 {
     CommandProcessor::CommandProcessor(std::vector<Command>&& commandList, size_t bufferSize) : 
     _commandList(commandList),
-    _inputBufferSize(bufferSize)
+    _maxInputBufferSize(bufferSize)
     {
-        _inputBuffer.resize(bufferSize);
-        _inputString.resize(bufferSize);
     }
 
     CmdProcStatus CommandProcessor::HandleData(uint8_t data, std::string& outputString)
@@ -57,20 +55,23 @@ namespace UartCmdProc
             if (dataIn == _stopChar)
             {
                 _inputString = _inputBuffer;
-                _commandBufIndex = 0;
+                _inputBuffer.resize(0);
+                //_commandBufIndex = 0;
                 _assembleState = AssembleState::CMD_PROC_IDLE;
                 return AssembleCmdStatus::COMMAND_READY;
             }
             else
             {
-                if (_commandBufIndex == (_inputBufferSize - 1))
+                if (_inputBuffer.size() == _maxInputBufferSize)
                 {
-                    _commandBufIndex = 0;
+                    _inputBuffer.resize(0);
+                    //_commandBufIndex = 0;
                     _assembleState = AssembleState::CMD_PROC_IDLE;
                 }
                 else
                 {
-                    _inputBuffer[_commandBufIndex++] = dataIn;
+                    //_inputBuffer[_commandBufIndex++] = dataIn;
+                    _inputBuffer.push_back(dataIn);
                 }
                 
                 return AssembleCmdStatus::COMMAND_NOT_READY;
@@ -101,15 +102,15 @@ namespace UartCmdProc
 
     std::vector<float> CommandProcessor::ParseArguments(std::string cmdId)
     {
-        char scanString[30] = {0};
+        std::string scanString;
         // Floats are scanned because they can accurately represent and be casted to the supported argument types.
-        sprintf(scanString, "%s %%f, %%f, %%f, %%f, %%f", cmdId);
+        scanString = std::format("{} %f, %f, %f, %f, %f", cmdId);
 
         float tempArgs[_maxArgCount];
 
         int numScanned = sscanf(
-            (const char*)_inputString.data(),
-            scanString,
+            _inputString.c_str(),
+            scanString.c_str(),
             &tempArgs[0], 
             &tempArgs[1], 
             &tempArgs[2], 
@@ -139,28 +140,28 @@ namespace UartCmdProc
         switch (handlerStatus)
         {
             case HandlerStatus::SUCCESS_MSG:
-                outputString += std::format("%s %s ACK\r\n", _inputString, handlerRespString);
+                outputString += std::format("{} {} ACK\r\n", _inputString, handlerRespString);
                 break;
 
             case HandlerStatus::SUCCESS:
-                outputString += std::format("%s ACK\r\n", _inputString);
+                outputString += std::format("{} ACK\r\n", _inputString);
                 break;
 
             case HandlerStatus::INVALID_ARGS:
-                outputString += std::format("%s INVALID ARGS ERR\r\n", _inputString);
+                outputString += std::format("{} INVALID ARGS ERR\r\n", _inputString);
                 break;
 
             case HandlerStatus::ARG_RANGE_ERR:
-                outputString += std::format("%s ARG RANGE ERR\r\n", _inputString);
+                outputString += std::format("{} ARG RANGE ERR\r\n", _inputString);
                 break;
 
             case HandlerStatus::ERR_MSG:
-                outputString += std::format("%s %s ERR\r\n", _inputString, handlerRespString);
+                outputString += std::format("{} {} ERR\r\n", _inputString, handlerRespString);
                 break;
 
             default:
                 assert(0);
-                outputString += std::format("%s unexpected function error code ERR\r\n", _inputString);
+                outputString += std::format("{} unexpected error code ERR\r\n", _inputString);
         }
 
         return outputString;

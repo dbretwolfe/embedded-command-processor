@@ -1,25 +1,29 @@
+#include <string>
+#include <iostream>
+
 #include "test_fixture.h"
 
-static void SendCommand(const uint8_t* inputString, int len, uint8_t* outputString)
-{
-    /*
-    CmdProcStatus cmdProcStatus = CMD_PROC_WAITING;
+using namespace UartCmdProc;
 
-    for (int i = 0; i < (len - 1); i++)
+void CmdProcCppTest::SendCommand(const std::string inputString, std::string& outputString)
+{
+    CmdProcStatus cmdProcStatus = CmdProcStatus::WAITING;
+
+    for (int i = 0; i < (inputString.length() - 1); i++)
     {
-        cmdProcStatus = CmdProc_HandleData(inputString[i], outputString);
-        EXPECT_EQ(cmdProcStatus, CMD_PROC_WAITING);
+        cmdProcStatus = cmdProc->HandleData(inputString[i], outputString);
+        EXPECT_EQ(cmdProcStatus, CmdProcStatus::WAITING);
     }
 
-    cmdProcStatus = CmdProc_HandleData(inputString[(len - 1)], outputString);
-    EXPECT_EQ(cmdProcStatus, CMD_PROC_DONE);
-    */
+    cmdProcStatus = cmdProc->HandleData(inputString[(inputString.length() - 1)], outputString);
+    EXPECT_EQ(cmdProcStatus, CmdProcStatus::DONE);
 }
 
 TEST_F(CmdProcCppTest, TestArgs)
 {
-    
-    //SendCommand(inputString, strlen((const char*)inputString), outputString);
+    std::string inputString = "@TST0 1.2, 3, 4.56, 7.8, -9\r";
+    std::string outputString;
+    SendCommand(inputString, outputString);
 
-    //printf((const char*)outputString);
+    std::cout << outputString << std::endl;
 }
