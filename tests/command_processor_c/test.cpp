@@ -6,11 +6,11 @@ static void SendCommand(const uint8_t* inputString, int len, uint8_t* outputStri
 
     for (int i = 0; i < (len - 1); i++)
     {
-        cmdProcStatus = CmdProc_HandleData(inputString[i], outputString);
+        cmdProcStatus = CmdProc_HandleInputData(inputString[i], outputString);
         EXPECT_EQ(cmdProcStatus, CMD_PROC_WAITING);
     }
 
-    cmdProcStatus = CmdProc_HandleData(inputString[(len - 1)], outputString);
+    cmdProcStatus = CmdProc_HandleInputData(inputString[(len - 1)], outputString);
     EXPECT_EQ(cmdProcStatus, CMD_PROC_DONE);
 }
 

@@ -11,11 +11,11 @@ void CmdProcCppTest::SendCommand(const std::string inputString, std::string& out
 
     for (int i = 0; i < (inputString.length() - 1); i++)
     {
-        cmdProcStatus = cmdProc->HandleData(inputString[i], outputString);
+        cmdProcStatus = cmdProc->HandleInputData(inputString[i], outputString);
         EXPECT_EQ(cmdProcStatus, CmdProcStatus::WAITING);
     }
 
-    cmdProcStatus = cmdProc->HandleData(inputString[(inputString.length() - 1)], outputString);
+    cmdProcStatus = cmdProc->HandleInputData(inputString[(inputString.length() - 1)], outputString);
     EXPECT_EQ(cmdProcStatus, CmdProcStatus::DONE);
 }
 

@@ -6,13 +6,18 @@
 
 namespace UartCmdProc
 {
-    CommandProcessor::CommandProcessor(std::vector<Command>&& commandList, size_t bufferSize) : 
+    CommandProcessor::CommandProcessor(CmdProcConfig config, std::vector<Command>&& commandList, size_t bufferSize) :
+    _startChar(config.startChar),
+    _stopChar(config.stopChar),
+    _outputChar(config.outputChar),
     _commandList(commandList),
     _maxInputBufferSize(bufferSize)
     {
     }
 
-    CmdProcStatus CommandProcessor::HandleData(uint8_t data, std::string& outputString)
+    // Process a byte of input data.  This function is called once for each incoming byte.  The return value is an enum
+    // indicating whether a command was executed on this call of the function.
+    CmdProcStatus CommandProcessor::HandleInputData(uint8_t data, std::string& outputString)
     {
         AssembleCmdStatus assembleStatus = AssembleCommand(data);
 
@@ -39,11 +44,14 @@ namespace UartCmdProc
         }
     }
 
+    // Assemble input bytes into a string.  The state machine starts assembling when it detects the start character,
+    // and stops when it detects the stop character.  The completed string is copied out to the inputString argument once
+    // the stop character is detected.  The return value is an enum indicating whether a completed command is ready.
     CommandProcessor::AssembleCmdStatus CommandProcessor::AssembleCommand(uint8_t dataIn)
     {
         if (_assembleState == AssembleState::CMD_PROC_IDLE)
         {
-            if (dataIn == _inputChar)
+            if (dataIn == _startChar)
             {
                 _assembleState = AssembleState::CMD_PROC_ASSEMBLE;
             }
@@ -85,6 +93,8 @@ namespace UartCmdProc
         }
     }
 
+    // Search the command list for a command with an ID matching the one found in the input string.
+    // If a match is found, return a reference to the command, otherwise throw.
     Command& CommandProcessor::MatchCommandId(void)
     {
         for (int i = 0; i < _commandList.size(); i++)
@@ -100,6 +110,7 @@ namespace UartCmdProc
         throw std::invalid_argument("Invalid command!");
     }
 
+    // Parse the input string to extract arguments.  Returns a vector containing any argument values.
     std::vector<float> CommandProcessor::ParseArguments(std::string cmdId)
     {
         std::string scanString;
@@ -132,6 +143,7 @@ namespace UartCmdProc
         return tempArgVec;
     }
 
+    // Craft a string incorporating the output from the command function plus any error information.
     std::string CommandProcessor::BuildOutputString(HandlerStatus handlerStatus, std::string& handlerRespString)
     {
         std::string outputString;

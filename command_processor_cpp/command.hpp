@@ -15,11 +15,14 @@ namespace UartCmdProc
         ERR_MSG = -3
     };
 
+    // Typedef used for command handler function pointers.
     typedef HandlerStatus (*CmdProcHandler)(
         std::vector<float> args,
         const std::string& inputString,
         std::string& handlerRespString);
 
+    // Command object class.  A command object is created with a command ID and a command handler function.
+    // The object is interacted with by calling the Execute public member function.
     class Command
     {
     public:

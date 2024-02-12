@@ -13,6 +13,9 @@ typedef enum { CMD_PROC_IDLE, CMD_PROC_ASSEMBLE } CmdProc_AssembleState;
 
 extern const CmdProc_Command commandList[CMD_PROC_MAX_NUM_CMDS];
 
+// Assemble input bytes into a string.  The state machine starts assembling when it detects the start character,
+// and stops when it detects the stop character.  The completed string is copied out to the inputString argument once
+// the stop character is detected.  The return value is an enum indicating whether a completed command is ready.
 static AssembleCmdStatus CmdProc_AssembleCmd(uint8_t dataIn, uint8_t* inputString)
 {
     static uint8_t commandBuffer[CMD_PROC_INPUT_STR_LEN] = {0};
@@ -21,7 +24,7 @@ static AssembleCmdStatus CmdProc_AssembleCmd(uint8_t dataIn, uint8_t* inputStrin
 
     if (cmdProcState == CMD_PROC_IDLE)
     {
-        if (dataIn == CMD_PROC_INPUT_CHAR)
+        if (dataIn == CMD_PROC_START_CHAR)
         {
             cmdProcState = CMD_PROC_ASSEMBLE;
         }
@@ -60,6 +63,7 @@ static AssembleCmdStatus CmdProc_AssembleCmd(uint8_t dataIn, uint8_t* inputStrin
     }
 }
 
+// From the input string, determine what command function should be called from the command list, and parse any arguments.
 static ParseCmdStatus CmdProc_ParseInputString(
     const uint8_t* inputString, 
     const CmdProc_Command** commandOut, 
@@ -99,6 +103,7 @@ static ParseCmdStatus CmdProc_ParseInputString(
     return COMMAND_INVALID;
 }
 
+// Craft a string incorporating the output from the command function plus any error information.
 void CmdProc_BuildOutputString(
     CmdProc_HandlerStatus handlerStatus, 
     const uint8_t* inputString, 
@@ -135,7 +140,9 @@ void CmdProc_BuildOutputString(
     }
 }
 
-CmdProcStatus CmdProc_HandleData(uint8_t data, uint8_t* outputString)
+// Process a byte of input data.  This function is called once for each incoming byte.  The return value is an enum
+// indicating whether a command was executed on this call of the function.
+CmdProcStatus CmdProc_HandleInputData(uint8_t data, uint8_t* outputString)
 {
     uint8_t inputString[CMD_PROC_INPUT_STR_LEN] = { 0 };
     AssembleCmdStatus assembleStatus = CmdProc_AssembleCmd(data, inputString);
